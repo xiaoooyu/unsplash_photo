@@ -1,0 +1,11 @@
+{
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "driver": "SQLite",
+      "name": "my-test",
+      "database": "${workspaceFolder:unsplash_photo}/my-test.db"
+    }
+  ],
+  "sqltools.useNodeRuntime": true
+}

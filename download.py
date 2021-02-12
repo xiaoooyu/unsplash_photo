@@ -8,6 +8,9 @@ from time import time
 
 import concurrent.futures
 
+from photo import Photo
+import database
+
 #
 DOWNLOAD = "downloads"
 ARCHIVE = "downloads-all"
@@ -46,11 +49,11 @@ def report_task_progress():
 
 	print("{0}: {1}/{2} tasks finished".format(elapse_time, G_TASKS_FINISHED, G_TASKS))
 
-def download_photo(downloadFileInfo):
+def download_photo(downloadFileInfo, photo):
 	global G_TASKS
 	G_TASKS += 1
 	
-	url = downloadFileInfo.url
+	url = photo.thumb
 	page = downloadFileInfo.page
 
 	file_name = '{0}.jpg'.format(get_filename(url))
@@ -85,12 +88,12 @@ def get_photo(page, executor):
 	for d in data:
 		full = d['urls']['full']
 		info = DownloadFileInfo(full, page)
-		#print("url: {0}, page: {1}".format(info.url, info.page))
+		photo = Photo(d)
 		
 		if executor is None:
-			download_photo(info)
+			download_photo(info, photo)
 		else:
-			executor.submit(download_photo, info)
+			executor.submit(download_photo, info, photo)
 
 if __name__ == "__main__":
 	if not path.exists(DOWNLOAD):
@@ -99,6 +102,6 @@ if __name__ == "__main__":
 	G_START_TIME = int(time() * 1000)
 
 	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-		for i in range(1, 51):
+		for i in range(1, 2):
 			get_photo(i, executor)
 			#get_photo(i, None)
