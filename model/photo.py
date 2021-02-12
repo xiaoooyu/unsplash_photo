@@ -42,8 +42,8 @@ class Photo:
     self.regular = dict['urls']['regular']
     self.small = dict['urls']['small']
     self.thumb = dict['urls']['thumb']
-    self.createAt = dparser.parse(dict['created_at'], fuzzy = True)
-    self.updateAt = dparser.parse(dict['updated_at'], fuzzy = True)
+    self.createdAt = dparser.parse(dict['created_at'], fuzzy = True)
+    self.updatedAt = dparser.parse(dict['updated_at'], fuzzy = True)
     self.width = dict['width']
     self.height = dict['height']
     self.color = dict['color']

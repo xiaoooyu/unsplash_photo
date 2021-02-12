@@ -8,8 +8,8 @@ from time import time
 
 import concurrent.futures
 
-from photo import Photo
-import database
+from model.photo import Photo
+import database as dbutil
 
 #
 DOWNLOAD = "downloads"
@@ -18,7 +18,8 @@ ARCHIVE = "downloads-all"
 # api-endpoint
 URL = "https://unsplash.com/napi/photos"
 PAGE_SIZE = 12
-MAX_WORKER = 50
+MAX_PROFILE_WORKER = 4
+MAX_DOWNLOAD_WORKER = 12
 
 G_TASKS = 0
 G_TASKS_FINISHED = 0
@@ -50,9 +51,7 @@ def report_task_progress():
 	print("{0}: {1}/{2} tasks finished".format(elapse_time, G_TASKS_FINISHED, G_TASKS))
 
 def download_photo(downloadFileInfo, photo):
-	global G_TASKS
-	G_TASKS += 1
-	
+	#url = photo.full
 	url = photo.thumb
 	page = downloadFileInfo.page
 
@@ -75,8 +74,12 @@ def download_photo(downloadFileInfo, photo):
 	print("FINISH: Page:{0} downloading {1}(use {2} ms)"
 		.format(page, file_name, r_using_time))
 	report_task_progress()
+	
+	#if dbutil.fetchOneById(photo.id) is None:		
+	#	dbutil.insertOrUpdate(photo)
 
-def get_photo(page, executor):
+def get_photo(page):
+	
 	# os.mkdir(path.join(FOLDER, str(page)))
 
 	PARAMS = {'per_page':PAGE_SIZE, 'page':page}
@@ -85,23 +88,29 @@ def get_photo(page, executor):
 	data = r.json()
 	
 	print("PREPARE: create download task for Page: {0}".format(page))
-	for d in data:
-		full = d['urls']['full']
-		info = DownloadFileInfo(full, page)
-		photo = Photo(d)
-		
-		if executor is None:
-			download_photo(info, photo)
-		else:
-			executor.submit(download_photo, info, photo)
+	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_DOWNLOAD_WORKER) as executor:
+		for d in data:
+			full = d['urls']['full']
+			info = DownloadFileInfo(full, page)
+			photo = Photo(d)
+			
+			global G_TASKS
+			G_TASKS += 1
+			
+			if executor is None:
+				download_photo(info, photo)
+			else:			
+				executor.submit(download_photo, info, photo)
 
 if __name__ == "__main__":
 	if not path.exists(DOWNLOAD):
 		os.mkdir(DOWNLOAD)
 	
 	G_START_TIME = int(time() * 1000)
-
-	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-		for i in range(1, 2):
-			get_photo(i, executor)
-			#get_photo(i, None)
+	
+	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PROFILE_WORKER) as profile_executor:		
+			for i in range(1, 10):
+				#profile_executor.submit(get_photo, i, executor)
+				profile_executor.submit(get_photo, i)
+				# get_photo(i, executor)
+				# get_photo(i, None)
