@@ -26,15 +26,27 @@ def createTable():
 
 def insertOrUpdate(photo):
   conn = sqlite3.connect(DB_NAME)
-  sql = 'INSERT INTO USER (id, name, age) values(?, ?, ?)'
-  data = [
-    (1, 'Alice', 21),
-    (2, 'Bob', 22),
-    (3, 'Chris', 23),
-  ]
+  sql = """
+    INSERT INTO PHOTO 
+    (id, raw, full, regular, small, thumb, created_at, updated_at, width, height, color, description, alt) 
+    values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  """
+  data = (photo.id, photo.raw, photo.full, photo.regular, photo.small, photo.thumb,
+  photo.createdAt, photo.updatedAt, photo.width, photo.height, photo.color, photo.description, photo.alt)
 
   with conn:
-    conn.executemany(sql, data)
+    conn.execute(sql, data)
+    #conn.commit()
+    #conn.executemany(sql, data)
+
+def fetchOneById(id):
+  conn = sqlite3.connect(DB_NAME)
+  sql = "SELECT * FROM PHOTO WHERE id = ?"
+
+  with conn:
+    cursor = conn.cursor()
+    cursor.execute(sql, (id,))
+    return cursor.fetchone()
 
 if __name__ == "__main__":
   createTable()

@@ -11,10 +11,15 @@ def task():
     print("I: {}".format(result))
     print("Task Executed {}".format(threading.current_thread()))
 
-def main():
+def main2():
     executor = ThreadPoolExecutor(max_workers=3)
     task1 = executor.submit(task)
     task2 = executor.submit(task)
+
+def main():
+    a = "abc"
+    print("""${%a}
+    """)
 
 if __name__ == '__main__':
     main()
