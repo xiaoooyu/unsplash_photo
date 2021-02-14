@@ -5,6 +5,12 @@
       "driver": "SQLite",
       "name": "my-test",
       "database": "${workspaceFolder:unsplash_photo}/my-test.db"
+    },
+    {
+      "previewLimit": 50,
+      "driver": "SQLite",
+      "name": "photo",
+      "database": "${workspaceFolder:unsplash_photo}/unsplash-photo.db"
     }
   ],
   "sqltools.useNodeRuntime": true
