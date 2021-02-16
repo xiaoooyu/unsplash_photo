@@ -47,12 +47,12 @@ def get_filename(url):
 	return path.basename(schema_removed)
 
 
-def getPaging(page, downloadPhotoFn, tracker):
-	pageObject = Page(URL, page, PAGE_SIZE)
+def getPaging(pageIndex, downloadPhotoFn, tracker):
+	pageObject = Page(URL, pageIndex, PAGE_SIZE)
 	
 	photos = pageObject.fetchPhotos()
 	
-	print("PREPARE: create download task for Page: {0}".format(page))
+	print("PREPARE: create download task for Page: {0}".format(pageIndex))
 	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_DOWNLOAD_WORKER) as downloadExecutor:
 		
 		executor = downloadExecutor
@@ -155,10 +155,10 @@ def scanPageAndFindDedicatePhoto(initPage, tracker):
 				executor.submit(downloadPhoto, photo, tracker)
 
 	
-def findDedicateInPage(page, buff):
-	print("START: scan page {0}".format(page))	
-	pageObject = Page(URL, page, PAGE_SIZE)	
-	for photo in pageObject.fetchPhotos():
+def findDedicateInPage(pageIndex, buff):
+	print("START: scan page {0}".format(pageIndex))	
+	page = Page(URL, pageIndex, PAGE_SIZE)	
+	for photo in page.fetchPhotos():
 		if dbutil.fetchOneById(photo.id) is None:
 			buff.append(photo)
 			print("SCAN: {0} is qulified because cannot find record locally".format(photo.id))
