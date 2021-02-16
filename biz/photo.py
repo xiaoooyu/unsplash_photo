@@ -8,14 +8,18 @@ from time import time
 import concurrent.futures
 
 from model.photo import Photo
+from model.page import Page
 from model.tracker import Tracker
 import database as dbutil
 
+DRY_RUN = False
+
 # api-endpoint
 URL = "https://unsplash.com/napi/photos"
-PAGE_SIZE = 12
+PAGE_SIZE = 30
 
-MAX_DOWNLOAD_WORKER = 12
+MAX_DOWNLOAD_WORKER = 30
+MAX_SCAN_WORKER = 10
 
 PARENT = "downloads"
 DOWNLOAD = "downloads/current"
@@ -44,10 +48,9 @@ def get_filename(url):
 
 
 def getPaging(page, downloadPhotoFn, tracker):
-	params = {'per_page':PAGE_SIZE, 'page':page}
-	r = requests.get(url = URL, params = params)
-
-	data = r.json()
+	pageObject = Page(URL, page, PAGE_SIZE)
+	
+	photos = pageObject.fetchPhotos()
 	
 	print("PREPARE: create download task for Page: {0}".format(page))
 	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_DOWNLOAD_WORKER) as downloadExecutor:
@@ -55,9 +58,7 @@ def getPaging(page, downloadPhotoFn, tracker):
 		executor = downloadExecutor
 		#executor = None
 
-		for d in data:						
-			photo = Photo(d) 					
-			
+		for photo in photos:			
 			if tracker is not None:
 				tracker.addTask(1)				
 			
@@ -80,6 +81,7 @@ def downloadPhoto(photo, tracker):
 		print("SKIP: {0} has record".format(photo.id))
 
 		if path.exists(archive_file_name):
+			print("SKIP: downloading {0} becase exist of {1}, url {2}".format(file_name, archive_file_name, url))
 			os.rename(archive_file_name, delete_file_name)
 
 		if tracker is not None:
@@ -89,8 +91,8 @@ def downloadPhoto(photo, tracker):
 		return
 
 	if path.exists(archive_file_name):
-		
 		print("SKIP: downloading {0} becase exist of {1}, url {2}".format(file_name, archive_file_name, url))
+		
 		dbutil.insertOrUpdate(photo)
 		os.rename(archive_file_name, delete_file_name)
 		
@@ -100,17 +102,20 @@ def downloadPhoto(photo, tracker):
 		
 		return
 	
-	r_start_time = int(time() * 1000)
-	r = requests.get(url = url)	
-	open(download_file_name, 'wb').write(r.content)
-	r_end_time = int(time() * 1000)
+	if DRY_RUN == False:
+		r_start_time = int(time() * 1000)
+		r = requests.get(url = url)	
+		open(download_file_name, 'wb').write(r.content)
+		r_end_time = int(time() * 1000)
 
-	r_using_time = r_end_time - r_start_time	
+		r_using_time = r_end_time - r_start_time	
 
-	print("FINISH: downloading {0}(use {1} ms)"
-		.format(file_name, r_using_time))
-	
-	dbutil.insertOrUpdate(photo)
+		print("FINISH: downloading {0}(use {1} ms)"
+			.format(file_name, r_using_time))
+		
+		dbutil.insertOrUpdate(photo)
+	else:
+		print("DRYRUN: downloading {0}".format(file_name))
 
 	if tracker is not None:
 		tracker.finishTask(1)
@@ -122,3 +127,40 @@ def downloadPhoto(photo, tracker):
 	# else:
 	# 	print("SKIP: {0} has record".format(photo.id))
 
+def scanPageAndFindDedicatePhoto(initPage, tracker):
+	page = initPage
+	buff = []
+	key = ''
+	while not key == 'd':		
+		with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_SCAN_WORKER) as scanExecutor:
+			for i in range(page, page + 10):
+				scanExecutor.submit(findDedicateInPage, i, buff)
+		key = input("Find qulified photo: {1}. Press 'd' to download, any other key to continue.".format(page, len(buff)))		
+		page += 10
+
+	input("{0} quanlified photos have found, press key to continue".format(len(buff)))	
+
+	with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_DOWNLOAD_WORKER) as downloadExecutor:
+		executor = downloadExecutor
+		#executor = None
+
+		for photo in buff:			
+			
+			if tracker is not None:
+				tracker.addTask(1)				
+			
+			if executor is None:
+				downloadPhoto(photo, tracker)
+			else:			
+				executor.submit(downloadPhoto, photo, tracker)
+
+	
+def findDedicateInPage(page, buff):
+	print("START: scan page {0}".format(page))	
+	pageObject = Page(URL, page, PAGE_SIZE)	
+	for photo in pageObject.fetchPhotos():
+		if dbutil.fetchOneById(photo.id) is None:
+			buff.append(photo)
+			print("SCAN: {0} is qulified because cannot find record locally".format(photo.id))
+		else:
+			print("SKIP: {0} has a local record.".format(photo.id))

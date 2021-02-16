@@ -1,8 +1,9 @@
 from time import time
 from datetime import datetime
-
+import threading
 class Tracker:
 	def __init__(self):
+		self.lock = threading.Lock()
 		self.taskStartAt = (int)(time() * 1000)
 		self.taskNum = 0
 		self.taskFinishedNum = 0
@@ -14,7 +15,9 @@ class Tracker:
 		print("{0}: {1}/{2} tasks finished".format(elapse_time, self.taskFinishedNum, self.taskNum))
 
 	def finishTask(self, n):
-		self.taskFinishedNum += n
+		with self.lock:
+			self.taskFinishedNum += n
 
 	def addTask(self, n):
-		self.taskNum += n
+		with self.lock:
+			self.taskNum += n
