@@ -1,5 +1,8 @@
 from dateutil import parser as dparser
 
+import sqlite3
+from database import DB_NAME
+
 class Photo:
   
   def __init__(self):
@@ -49,4 +52,30 @@ class Photo:
     self.color = dict['color']
     self.description = dict['description']
     self.alt = dict['alt_description']
+
+  def insertOrUpdate(self):
+    conn = sqlite3.connect(DB_NAME)
+    photo = self
+    sql = """
+    INSERT INTO PHOTO 
+    (id, raw, full, regular, small, thumb, created_at, updated_at, width, height, color, description, alt) 
+    values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    data = (photo.id, photo.raw, photo.full, photo.regular, photo.small, photo.thumb,
+      photo.createdAt, photo.updatedAt, photo.width, photo.height, photo.color, photo.description, photo.alt)
+
+    with conn:
+      conn.execute(sql, data)
+      #conn.commit()
+      #conn.executemany(sql, data)
+
+  def fetchOneById(id):
+    conn = sqlite3.connect(DB_NAME)
+    sql = "SELECT * FROM PHOTO WHERE id = ?"
+
+    with conn:
+      cursor = conn.cursor()
+      cursor.execute(sql, (id,))
+      return cursor.fetchone()
+
   

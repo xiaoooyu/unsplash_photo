@@ -13,5 +13,6 @@
       "database": "${workspaceFolder:unsplash_photo}/unsplash-photo.db"
     }
   ],
-  "sqltools.useNodeRuntime": true
+  "sqltools.useNodeRuntime": true,
+  "python.pythonPath": "/usr/local/bin/python3"
 }
