@@ -1,4 +1,6 @@
 
+A utility which is writed in python to batch download images from unsplah website. 
+
 ## Dependencies need to be installed
 1. pip3 install requests
 2. pip3 install python-dateutil
